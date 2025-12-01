@@ -1218,6 +1218,49 @@ class ContentManager: ObservableObject {
         primaryBrowser.scrollView.maximumZoomScale = 1.0
         primaryBrowser.scrollView.bouncesZoom = false
         primaryBrowser.allowsBackForwardNavigationGestures = true
+        
+        // Prevent page jumping when keyboard appears
+        primaryBrowser.scrollView.contentInsetAdjustmentBehavior = .never
+        
+        // Listen for keyboard notifications to adjust scroll behavior
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillShowNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleKeyboardWillShow(notification)
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillHideNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.handleKeyboardWillHide()
+        }
+    }
+    
+    private func handleKeyboardWillShow(_ notification: Notification) {
+        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+            return
+        }
+        
+        // Store the current scroll position to prevent jumping
+        let currentOffset = primaryBrowser.scrollView.contentOffset
+        
+        // Adjust content inset to account for keyboard
+        let keyboardHeight = keyboardFrame.height
+        primaryBrowser.scrollView.contentInset.bottom = keyboardHeight
+        primaryBrowser.scrollView.scrollIndicatorInsets.bottom = keyboardHeight
+        
+        // Restore scroll position
+        primaryBrowser.scrollView.setContentOffset(currentOffset, animated: false)
+    }
+    
+    private func handleKeyboardWillHide() {
+        // Reset content inset when keyboard hides
+        primaryBrowser.scrollView.contentInset.bottom = 0
+        primaryBrowser.scrollView.scrollIndicatorInsets.bottom = 0
     }
     
     func loadStoredCookies() {
@@ -1331,6 +1374,7 @@ struct CoreInterfaceView: View {
     
     init(destinationLink: URL) {
         self.destinationLink = destinationLink
+        // Don't cache URL in init - let onAppear handle it dynamically
         _activeURL = State(initialValue: destinationLink)
     }
     
@@ -1349,17 +1393,24 @@ struct CoreInterfaceView: View {
     
     private func synchronizeInterfaceURL() {
         guard NetworkMonitor.shared.isConnected else {
-            activeURL = destinationLink
+            // When offline, try to use saved_url if available
+            if let savedString = UserDefaults.standard.string(forKey: "saved_url"),
+               let savedURL = URL(string: savedString) {
+                activeURL = savedURL
+            } else {
+                activeURL = destinationLink
+            }
             return
         }
         
+        // Priority: temp_url (push) > saved_url (config) > destinationLink
         if let pending = consumeTempURL() {
             activeURL = pending
         } else if let savedString = UserDefaults.standard.string(forKey: "saved_url"),
-                  let savedURL = URL(string: savedString) {
+                  let savedURL = URL(string: savedString),
+                  savedURL != activeURL {
+            // Update to new config URL if it changed
             activeURL = savedURL
-        } else {
-            activeURL = destinationLink
         }
     }
     
