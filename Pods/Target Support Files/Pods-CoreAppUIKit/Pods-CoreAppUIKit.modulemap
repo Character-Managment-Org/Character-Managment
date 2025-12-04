@@ -1,0 +1,6 @@
+framework module Pods_CoreAppUIKit {
+  umbrella header "Pods-CoreAppUIKit-umbrella.h"
+
+  export *
+  module * { export * }
+}

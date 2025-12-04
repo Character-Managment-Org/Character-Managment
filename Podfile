@@ -1,6 +1,6 @@
 platform :ios, '14.0'
 
-target 'Base' do
+target 'CoreAppUIKit' do
   use_frameworks!
 
   pod 'Firebase/Core'
