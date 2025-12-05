@@ -67,7 +67,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Utillity/Examples/Info.plist,
 			);
 			target = 95AB23052E854CF500FB80DD /* CoreAppUIKit */;
 		};
