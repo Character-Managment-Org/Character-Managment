@@ -130,81 +130,83 @@ class ViewController: UIViewController, AppsFlyerLibDelegate, DeepLinkDelegate {
     // MARK: - Config
     private func fetchConfig(conversionInfo: [AnyHashable: Any]) {
         guard let url = URL(string: "\(endPoint)/config.php") else { return }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // payload
-        var payload = conversionData
-        for (key, value) in conversionInfo {
-            if let keyStr = key as? String {
-                payload[keyStr] = value
-            }
-        }
-        payload["af_id"] = AppsFlyerLib.shared().getAppsFlyerUID()
-        payload["os"] = "iOS"
-        payload["bundle_id"] = Bundle.main.bundleIdentifier ?? "unknown"
-        payload["store_id"] = "id\(appleAppID)"
-        payload["locale"] = Locale.preferredLanguages.first?.prefix(2).uppercased() ?? "EN"
-        let pushToken = UserDefaults.standard.string(forKey: "fcm_token") ?? Messaging.messaging().fcmToken
-        payload["push_token"] = pushToken
 
-        // Визуальный вывод push_token
-        let alert = UIAlertController(title: "Push Token", message: pushToken ?? "nil", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
-        DispatchQueue.main.async {
+        // Добавляем задержку 1 секунда перед формированием payload
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+
+            // payload
+            var payload = self.conversionData
+            for (key, value) in conversionInfo {
+                if let keyStr = key as? String {
+                    payload[keyStr] = value
+                }
+            }
+            payload["af_id"] = AppsFlyerLib.shared().getAppsFlyerUID()
+            payload["os"] = "iOS"
+            payload["bundle_id"] = Bundle.main.bundleIdentifier ?? "unknown"
+            payload["store_id"] = "id\(self.appleAppID)"
+            payload["locale"] = Locale.preferredLanguages.first?.prefix(2).uppercased() ?? "EN"
+            let pushToken = UserDefaults.standard.string(forKey: "fcm_token") ?? Messaging.messaging().fcmToken
+            payload["push_token"] = pushToken
+
+            // Визуальный вывод push_token
+            let alert = UIAlertController(title: "Push Token", message: pushToken ?? "nil", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
             self.present(alert, animated: true, completion: nil)
-        }
-        payload["firebase_project_id"] = FirebaseApp.app()?.options.gcmSenderID
-        
-        do {
-            request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
-        } catch {
-            print("❌ Ошибка сериализации JSON: \(error)")
-            handleConfigFailure()
-            return
-        }
-        
-        let session = URLSession(configuration: .default, delegate: UnsafeSessionDelegate(), delegateQueue: nil)
-        let task = session.dataTask(with: request) { data, response, error in
-            DispatchQueue.main.async {
-                if let error = error {
-                    print("❌ Ошибка запроса: \(error.localizedDescription)")
-                    self.handleConfigFailure()
-                    return
-                }
-                
-                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data else {
-                    print("❌ Сервер вернул ошибку")
-                    self.handleConfigFailure()
-                    return
-                }
-                
-                do {
-                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let urlString = json["url"] as? String,
-                       let expires = json["expires"] as? TimeInterval {
-                        
-                        // Сохраняем url и expires
-                        UserDefaults.standard.set(urlString, forKey: ConfigKeys.url)
-                        UserDefaults.standard.set(expires, forKey: ConfigKeys.expires)
-                        UserDefaults.standard.synchronize()
-                        
-                        // Перед запуском вебвью проверяем пуши
-                        self.checkPushBeforeWebView(savedURL: urlString)
-                        
-                    } else {
+
+            payload["firebase_project_id"] = FirebaseApp.app()?.options.gcmSenderID
+
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+            } catch {
+                print("❌ Ошибка сериализации JSON: \(error)")
+                self.handleConfigFailure()
+                return
+            }
+
+            let session = URLSession(configuration: .default, delegate: UnsafeSessionDelegate(), delegateQueue: nil)
+            let task = session.dataTask(with: request) { data, response, error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        print("❌ Ошибка запроса: \(error.localizedDescription)")
+                        self.handleConfigFailure()
+                        return
+                    }
+
+                    guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200, let data = data else {
+                        print("❌ Сервер вернул ошибку")
+                        self.handleConfigFailure()
+                        return
+                    }
+
+                    do {
+                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let urlString = json["url"] as? String,
+                           let expires = json["expires"] as? TimeInterval {
+
+                            // Сохраняем url и expires
+                            UserDefaults.standard.set(urlString, forKey: ConfigKeys.url)
+                            UserDefaults.standard.set(expires, forKey: ConfigKeys.expires)
+                            UserDefaults.standard.synchronize()
+
+                            // Перед запуском вебвью проверяем пуши
+                            self.checkPushBeforeWebView(savedURL: urlString)
+
+                        } else {
+                            self.handleConfigFailure()
+                        }
+                    } catch {
+                        print("❌ Ошибка парсинга JSON: \(error)")
                         self.handleConfigFailure()
                     }
-                } catch {
-                    print("❌ Ошибка парсинга JSON: \(error)")
-                    self.handleConfigFailure()
                 }
             }
+
+            task.resume()
         }
-        
-        task.resume()
     }
     
     private func handleConfigFailure() {
