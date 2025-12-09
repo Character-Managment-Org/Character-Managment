@@ -7,17 +7,24 @@
 
 import UIKit
 import AppTrackingTransparency
+import FirebaseMessaging
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
 
     var window: UIWindow?
     var internetStatus: Bool = true
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        
+        Messaging.messaging().delegate = self
         return true
     }
+        // MARK: - Firebase Messaging Delegate
+        func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+            UserDefaults.standard.set(fcmToken, forKey: "fcm_token")
+            UserDefaults.standard.synchronize()
+            print("FCM Token: \(fcmToken ?? "nil")")
+        }
     
     
     
