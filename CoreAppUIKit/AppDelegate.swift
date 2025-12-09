@@ -29,7 +29,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         FirebaseApp.configure()
         Messaging.messaging().delegate = self
         UNUserNotificationCenter.current().delegate = self
+        // Запрос разрешения и регистрация для пушей
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
         return true
+            // MARK: - APNs Token Methods
+            func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+                Messaging.messaging().apnsToken = deviceToken
+                print("APNs device token: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
+            }
+
+            func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+                print("Failed to register for remote notifications: \(error.localizedDescription)")
+            }
         // Обработка перехода по пуш-уведомлению
         func userNotificationCenter(_ center: UNUserNotificationCenter,
             didReceive response: UNNotificationResponse,
