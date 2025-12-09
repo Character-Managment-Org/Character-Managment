@@ -31,12 +31,12 @@
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemPurpleColor"/>
                         <constraints>
-                            <constraint firstItem="Qqa-0t-4qI" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" id="0xm-9N-4Cr"/>
                             <constraint firstAttribute="bottom" secondItem="Qqa-0t-4qI" secondAttribute="bottom" id="2r1-fD-Ty1"/>
                             <constraint firstItem="Qqa-0t-4qI" firstAttribute="top" secondItem="8bC-Xf-vdC" secondAttribute="top" id="3H1-OX-fC3"/>
+                            <constraint firstAttribute="trailing" secondItem="Qqa-0t-4qI" secondAttribute="trailing" id="G3c-KX-bea"/>
                             <constraint firstItem="Qf5-o6-kIu" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Ji5-QU-X6K"/>
                             <constraint firstItem="Qf5-o6-kIu" firstAttribute="bottom" secondItem="6Tk-OE-BBY" secondAttribute="bottom" id="Pfp-bX-EPn"/>
-                            <constraint firstItem="Qqa-0t-4qI" firstAttribute="trailing" secondItem="6Tk-OE-BBY" secondAttribute="trailing" id="aCC-PK-cI0"/>
+                            <constraint firstItem="Qqa-0t-4qI" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" id="ZLj-AB-60h"/>
                         </constraints>
                     </view>
                     <connections>
@@ -65,7 +65,7 @@
                                 </constraints>
                             </imageView>
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.0" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="ChatGPT Image 29 сент. 2025 г., 00_34_29 1" translatesAutoresizingMaskIntoConstraints="NO" id="gxf-OV-bFP" userLabel="Logo">
-                                <rect key="frame" x="27.666666666666657" y="124.66666666666669" width="338" height="338"/>
+                                <rect key="frame" x="27.666666666666657" y="124.66666666666669" width="338" height="338.00000000000006"/>
                             </imageView>
                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="ALLOW NOTIFICATIONS ABOUT BONUSES AND PROMOS" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="UcE-j8-SGk">
                                 <rect key="frame" x="16" y="487.66666666666674" width="361" height="55"/>
