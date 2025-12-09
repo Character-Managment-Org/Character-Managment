@@ -1,3 +1,4 @@
+// ...existing code...
 //
 //  AppDelegate.swift
 //  CoreApp UIKit
@@ -13,6 +14,13 @@ import UserNotifications
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
+
+    // Показывать пуши, когда приложение открыто
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                               willPresent notification: UNNotification,
+                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.alert, .sound, .badge])
+    }
 
     var window: UIWindow?
     var internetStatus: Bool = true
