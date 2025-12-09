@@ -43,6 +43,7 @@ class NotificationViewController: UIViewController {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
             DispatchQueue.main.async {
                 print("📲 Системный пуш запрос: \(granted)")
+                UIApplication.shared.registerForRemoteNotifications()
                 completion()
             }
         }
