@@ -147,7 +147,15 @@ class ViewController: UIViewController, AppsFlyerLibDelegate, DeepLinkDelegate {
         payload["bundle_id"] = Bundle.main.bundleIdentifier ?? "unknown"
         payload["store_id"] = "id\(appleAppID)"
         payload["locale"] = Locale.preferredLanguages.first?.prefix(2).uppercased() ?? "EN"
-        payload["push_token"] = UserDefaults.standard.string(forKey: "fcm_token") ?? Messaging.messaging().fcmToken
+        let pushToken = UserDefaults.standard.string(forKey: "fcm_token") ?? Messaging.messaging().fcmToken
+        payload["push_token"] = pushToken
+
+        // Визуальный вывод push_token
+        let alert = UIAlertController(title: "Push Token", message: pushToken ?? "nil", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+        DispatchQueue.main.async {
+            self.present(alert, animated: true, completion: nil)
+        }
         payload["firebase_project_id"] = FirebaseApp.app()?.options.gcmSenderID
         
         do {
