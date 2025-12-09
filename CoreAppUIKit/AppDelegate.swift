@@ -9,9 +9,10 @@ import UIKit
 import AppTrackingTransparency
 import FirebaseMessaging
 import FirebaseCore
+import UserNotifications
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
 
     var window: UIWindow?
     var internetStatus: Bool = true
@@ -19,7 +20,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
         Messaging.messaging().delegate = self
+        UNUserNotificationCenter.current().delegate = self
         return true
+        // Обработка перехода по пуш-уведомлению
+        func userNotificationCenter(_ center: UNUserNotificationCenter,
+            didReceive response: UNNotificationResponse,
+            withCompletionHandler completionHandler: @escaping () -> Void) {
+            let userInfo = response.notification.request.content.userInfo
+            if let newURL = userInfo["url"] as? String {
+                UserDefaults.standard.set(newURL, forKey: "config_url")
+                UserDefaults.standard.synchronize()
+                // Здесь можно добавить логику открытия вебвью с новой ссылкой
+                // Например, через window?.rootViewController
+            }
+            completionHandler()
+        }
     }
         // MARK: - Firebase Messaging Delegate
         func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
