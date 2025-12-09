@@ -14,6 +14,7 @@ struct ConfigKeys {
 
 class ViewController: UIViewController, AppsFlyerLibDelegate, DeepLinkDelegate {
     
+    @IBOutlet weak var spinView: UIImageView!
     let appsFlyerDevKey = "z5JrY32kZnC2REjFEbtwGe"
     let appleAppID = "6755873596"
     let endPoint = "https://charactermanagment.com"
@@ -23,7 +24,7 @@ class ViewController: UIViewController, AppsFlyerLibDelegate, DeepLinkDelegate {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        startSpinAnimation()
         let now = Date().timeIntervalSince1970
         let expires = UserDefaults.standard.double(forKey: ConfigKeys.expires)
         
@@ -253,7 +254,7 @@ class ViewController: UIViewController, AppsFlyerLibDelegate, DeepLinkDelegate {
     private func openWebView(_ urlString: String) {
         // Проверяем, что URL валиден
         guard let _ = URL(string: urlString) else { return }
-        
+        stopSpinAnimation()
         // Инициализируем WebViewController с нужным URL
         let webVC = WebViewController(url: urlString)
         
@@ -267,6 +268,7 @@ class ViewController: UIViewController, AppsFlyerLibDelegate, DeepLinkDelegate {
     
     private func startGame() {
         print("🎮 Запуск игры")
+        stopSpinAnimation()
         self.openWebView("https://play.unity.com/api/v1/games/game/10e67e7c-11b1-4756-babf-3ff6c8fbad93/build/latest/frame")
     }
     
@@ -324,6 +326,19 @@ class ViewController: UIViewController, AppsFlyerLibDelegate, DeepLinkDelegate {
             topVC = presentedVC
         }
         return topVC
+    }
+    
+    func startSpinAnimation() {
+        let rotation = CABasicAnimation(keyPath: "transform.rotation")
+        rotation.fromValue = 0
+        rotation.toValue = NSNumber(value: Double.pi * 2) // полный оборот (360°)
+        rotation.duration = 1.0 // длительность одного оборота в секундах
+        rotation.repeatCount = .infinity // бесконечное повторение
+        spinView.layer.add(rotation, forKey: "spinAnimation")
+    }
+
+    func stopSpinAnimation() {
+        spinView.layer.removeAnimation(forKey: "spinAnimation")
     }
 }
 
