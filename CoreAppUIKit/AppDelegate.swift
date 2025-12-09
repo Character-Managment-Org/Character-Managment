@@ -8,6 +8,7 @@
 import UIKit
 import AppTrackingTransparency
 import FirebaseMessaging
+import FirebaseCore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
@@ -16,6 +17,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     var internetStatus: Bool = true
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        FirebaseApp.configure()
         Messaging.messaging().delegate = self
         return true
     }
