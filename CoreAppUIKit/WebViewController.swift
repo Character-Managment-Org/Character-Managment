@@ -9,6 +9,8 @@ import UniformTypeIdentifiers
 class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, UIDocumentPickerDelegate {
     
     private var webView: WKWebView!
+    private var activityIndicator: UIActivityIndicatorView!
+    private var loadTimeoutWorkItem: DispatchWorkItem?
     private var fileUploadCompletionHandler: (([URL]?) -> Void)?
     private var targetURL: String
     private var lastSuccessfulURL: String = ""  // последний успешно загруженный URL
@@ -41,6 +43,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, U
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.allowsBackForwardNavigationGestures = true
+        webView.isHidden = true // Скрываем до тех пор, пока контент не подтвердит загрузку
         view.addSubview(webView)
         webView.translatesAutoresizingMaskIntoConstraints = false
         
@@ -68,13 +71,24 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, U
             bottom: view.safeAreaInsets.bottom,
             right: 0
         )
+        // настраиваем индикатор загрузки
+        activityIndicator = UIActivityIndicatorView(style: .large)
+        activityIndicator.hidesWhenStopped = true
+        activityIndicator.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(activityIndicator)
+        NSLayoutConstraint.activate([
+            activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+        activityIndicator.startAnimating()
+
         // чистим userAgent
         webView.evaluateJavaScript("navigator.userAgent") { [weak self] result, _ in
             if let ua = result as? String {
                 self?.webView.customUserAgent = ua.replacingOccurrences(of: "; wv", with: "")
                     .replacingOccurrences(of: " Version/4.0", with: "")
             }
-            self?.loadWebView(urlString: self?.targetURL ?? "")
+            self?.startLoadWithTimeout(urlString: self?.targetURL ?? "")
         }
         
         NotificationCenter.default.addObserver(self,
@@ -105,6 +119,31 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, U
         request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
         
         webView.load(request)
+    }
+
+    private func startLoadWithTimeout(urlString: String) {
+        // отменяем предыдущий таймаут
+        loadTimeoutWorkItem?.cancel()
+
+        // запланировать таймаут на случай, если контент никогда не загрузится
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            print("⏱️ Таймаут загрузки — контент не подтвердил готовность")
+            DispatchQueue.main.async {
+                self.activityIndicator.stopAnimating()
+                // Оставляем webView скрытым, можно показать сообщение пользователю
+                let alert = UIAlertController(title: "Ошибка загрузки",
+                                              message: "Не удалось загрузить содержимое страницы.",
+                                              preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                self.present(alert, animated: true)
+            }
+        }
+        loadTimeoutWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 12.0, execute: workItem)
+
+        // начинаем загрузку
+        loadWebView(urlString: urlString)
     }
     
     private func checkWebViewContent() {
@@ -195,6 +234,60 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, U
             //lastSuccessfulURL = currentURL
            // lastUrls.append(lastSuccessfulURL)
             print("💾 Сохранили успешный URL: \(lastSuccessfulURL)")
+        }
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Проверяем, действительно ли содержимое загружено и готово к показу
+        webView.evaluateJavaScript("document.readyState") { [weak self] result, _ in
+            guard let self = self else { return }
+            let ready = result as? String ?? ""
+            print("📘 document.readyState = \(ready)")
+
+            // Проверяем размеры и длину HTML как дополнительную валидацию
+            self.webView.evaluateJavaScript("document.body.scrollHeight") { heightResult, _ in
+                let height = (heightResult as? Int) ?? 0
+                self.webView.evaluateJavaScript("document.documentElement.outerHTML.length") { lengthResult, _ in
+                    let length = (lengthResult as? Int) ?? 0
+                    print("📏 Высота: \(height)px, HTML length: \(length)")
+
+                    // Критерии достаточности: readyState == 'complete' и либо height>0 либо length>150
+                    if ready == "complete" && (height > 0 || length > 150) {
+                        self.showWebViewContent()
+                    } else {
+                        // Если page не готова — попробуем ещё раз немного позднее
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            // ещё одна попытка проверки
+                            self.webView.evaluateJavaScript("document.readyState") { r2, _ in
+                                let ready2 = r2 as? String ?? ""
+                                if ready2 == "complete" {
+                                    self.showWebViewContent()
+                                } else {
+                                    print("⚠️ Страница не готова после didFinish — оставляем скрытой и ждём таймаута")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func showWebViewContent() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            // отменяем таймаут
+            self.loadTimeoutWorkItem?.cancel()
+            self.loadTimeoutWorkItem = nil
+
+            self.activityIndicator.stopAnimating()
+            // Анимированно показываем webView
+            self.webView.alpha = 0.0
+            self.webView.isHidden = false
+            UIView.animate(withDuration: 0.25) {
+                self.webView.alpha = 1.0
+            }
+            print("✅ WebView показан — контент подтверждён")
         }
     }
     
@@ -316,6 +409,7 @@ class WebViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, U
     
     // MARK: - Cleanup
     deinit {
+        loadTimeoutWorkItem?.cancel()
         NotificationCenter.default.removeObserver(self)
     }
 }
